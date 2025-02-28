@@ -1,0 +1,58 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+
+def generate_synthetic_data(num_samples=500):
+    """Generate synthetic Schirmer test data."""
+    np.random.seed(42)
+    age = np.random.randint(18, 80, size=num_samples)
+    schirmer_score = np.random.uniform(0.5, 35.0, size=num_samples)
+    symptoms_severity = np.random.randint(0, 10, size=num_samples)
+    diagnosis = np.where(schirmer_score < 5, 1, 0)  # 1 for Dry Eye, 0 for Normal
+    
+    data = pd.DataFrame({
+        'Age': age,
+        'Schirmer_Score': schirmer_score,
+        'Symptoms_Severity': symptoms_severity,
+        'Diagnosis': diagnosis
+    })
+    return data
+
+# Generate data
+data = generate_synthetic_data()
+
+# Split into features and labels
+X = data[['Age', 'Schirmer_Score', 'Symptoms_Severity']]
+y = data['Diagnosis']
+
+# Standardize features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Build AI model
+model = Sequential([
+    Dense(16, activation='relu', input_shape=(X_scaled.shape[1],)),
+    Dropout(0.2),
+    Dense(8, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train model
+model.fit(X_scaled, y, epochs=50, batch_size=16, verbose=1, validation_split=0.2)
+
+# Function to predict eye health
+def assess_eye_health(age, schirmer_score, symptoms_severity):
+    """Assess eye health based on input values."""
+    input_data = np.array([[age, schirmer_score, symptoms_severity]])
+    input_scaled = scaler.transform(input_data)
+    prediction = model.predict(input_scaled)
+    result = "Dry Eye Detected" if prediction[0] > 0.5 else "Normal Eye Health"
+    return result
+
+# Example assessment
+print(assess_eye_health(45, 3.0, 7))
